@@ -1,8 +1,10 @@
 BinaryChoiceGamesSolver
 =======================
 
-This code is meant to solve games with two players where on each player's turn, they can make one of two binary choices. Solving means determining the optimal moves for either player for any given prior moves.
+This code finds winning strategies games with two players where on each player's turn, they can make one of two binary choices.
 
-Since these games can potentially go on forever, some may not be able to be completely solved, so this solver has a maximum turn limit. To look further, you can input a specific position to start from.
+Since these games can potentially go on forever and the number of possible positions increases exponentially the further you look out, this solver has a maximum turn limit. To look further, you can specify a specific position to start from.
 
-This is inspired by a video from WebGoatGuy on YouTube: <https://www.youtube.com/watch?v=A-lh1-bTzTw>
+The code is made to be flexible so you can specify your own custom rules. To do this, you need to create a function to determine when a game is a win, a draw, or not finished yet.
+
+This is inspired by a game described by WebGoatGuy in this video: <https://www.youtube.com/watch?v=A-lh1-bTzTw>

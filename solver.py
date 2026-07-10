@@ -228,7 +228,7 @@ class Game():
 
 class StatusFunc():
     '''
-    Contains functions for creating status functions for defining a game
+    Contains functions for creating status functions for determining when a game is a win or draw
     '''
 
     @staticmethod
