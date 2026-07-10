@@ -25,7 +25,7 @@ class Game():
             and returns the game status using GameStatus.
         '''
         self._status_func = status_func
-        self.tablebase:dict[str,tuple[int,int]] = dict() # format: {position : (outcome, # of moves)}
+        self.tablebase:dict[str,tuple[int,str|None,int|None]] = dict() # format: {position : (outcome, best move, # of moves)}
 
     def status(self, position:str) -> int:
         '''
@@ -33,7 +33,7 @@ class Game():
         '''
         return self._status_func(position)
 
-    def search(self, start_pos:str = "", max_depth:int = 500) -> dict:
+    def search(self, start_pos:str = "", max_depth:int = 20) -> dict:
         '''
         Find the optimal move in the given start_pos (the start of the game by default) if the game
         can be won in 500 moves.
@@ -51,9 +51,17 @@ class Game():
         # check if game is already over
         status = self.status(start_pos)
         if status != GameStatus.NOT_END:
+            self.tablebase[start_pos] = (status,None,0)
             return {
                 "result" : status,
                 "num_moves" : 0,
+                "opt_game" : start_pos
+            }
+        
+        if max_depth == 0:
+            self.tablebase[start_pos] = (GameStatus.NOT_END,None,None)
+            return {
+                "result" : GameStatus.NOT_END,
                 "opt_game" : start_pos
             }
         
@@ -65,7 +73,8 @@ class Game():
         opt_move:str|None = None
         num_moves:int|None = None
 
-        if start_pos % 2 == 0: 
+        # TODO: reduce redundant code, perhaps with helper functions?
+        if len(start_pos) % 2 == 0: 
             # player 1 to move
 
             if ret_X["result"] == GameStatus.P1WIN:
@@ -128,7 +137,79 @@ class Game():
                 # X leads to an uncertain result
                 result = GameStatus.NOT_END
                 opt_move = "X"
+        
+        else: # player 2 to move
+
+            if ret_X["result"] == GameStatus.P2WIN:
+                # P2 can win by choosing X
+                result = GameStatus.P2WIN
+
+                if ret_O["result"] == GameStatus.P2WIN and ret_O["num_moves"] < ret_X["num_moves"]:
+                    # O will win faster
+                    opt_move = "O"
+                    num_moves = ret_O["num_moves"] + 1
+                else:
+                    # O will not win faster
+                    opt_move = "X"
+                    num_moves = ret_X["num_moves"] + 1
             
+            elif ret_O["result"] == GameStatus.P2WIN:
+                # P2 can win by choosing O
+                result = GameStatus.P2WIN
+                opt_move = "O"
+                num_moves = ret_O["num_moves"] + 1
+
+            # P2 cannot win
+            elif ret_X["result"] == GameStatus.DRAW:
+                # P2 can draw by choosing X
+                result = GameStatus.DRAW
+                
+                if ret_O["result"] == GameStatus.DRAW and ret_O["num_moves"] < ret_X["num_moves"]:
+                    # O will draw faster
+                    opt_move = "O"
+                    num_moves = ret_O["num_moves"] + 1
+                else:
+                    # O will not draw faster
+                    opt_move = "X"
+                    num_moves = ret_X["num_moves"] + 1
+
+            elif ret_O["result"] == GameStatus.DRAW:
+                # P2 can draw by choosing O
+                result = GameStatus.DRAW
+                opt_move = "O"
+                num_moves = ret_O["num_moves"] + 1
+
+            # P2 cannot win or draw
+            elif ret_X["result"] == GameStatus.P1WIN:
+                
+                if ret_O["result"] == GameStatus.P1WIN:
+                    # P2 will lose
+                    result = GameStatus.P1WIN
+                    if ret_O["num_moves"] < ret_X["num_moves"]:
+                        opt_move = "X"
+                        num_moves = ret_X["num_moves"] + 1
+                    else:
+                        opt_move = "O"
+                        num_moves = ret_O["num_moves"] + 1
+                else:
+                    # O leads to an uncertain result
+                    result = GameStatus.NOT_END
+                    opt_move = "O"
+            
+            else:
+                # X leads to an uncertain result
+                result = GameStatus.NOT_END
+                opt_move = "X"
+        
+        # add position to tablebase
+        if start_pos in self.tablebase:
+            if result != GameStatus.NOT_END:
+                tb_result, tb_opt_move, tb_num_moves = self.tablebase[start_pos]
+                if tb_result == GameStatus.NOT_END or tb_num_moves is None or tb_num_moves > num_moves:
+                    self.tablebase[start_pos] = (result, opt_move, num_moves)
+        else:
+            self.tablebase[start_pos] = (result, opt_move, num_moves)
+
         # get best move list
         if opt_move == "X":
             opt_game = ret_X["opt_game"]
@@ -173,33 +254,35 @@ class StatusFunc():
             p2_win_move:int|None = None # same for player 2
 
             # count repitions for player 1
-            for move_num in range(len(position) - p1_len):
+            for move_num in range(len(position) - p1_len + 1):
                 cur_substr = position[move_num : move_num+p1_len]
 
                 if cur_substr in p1_reps:
-                    if p1_reps[cur_substr] >= p1_freq:
-                        p1_win_move = move_num + p1_len
-                        break # no need to calculate future moves
-                    if p1_last_occurance + p1_len <= move_num: # ensure overlapping patterns are not counted
+                    if move_num >= p1_last_occurance[cur_substr] + p1_len: # ensure overlapping patterns are not counted
                         p1_reps[cur_substr] += 1
+                        p1_last_occurance[cur_substr] = move_num
+
+                        if p1_reps[cur_substr] >= p1_freq:
+                            p1_win_move = move_num + p1_len
+                            break # no need to calculate future moves
                 else:
                     p1_reps[cur_substr] = 1
+                    p1_last_occurance[cur_substr] = move_num
 
-                p1_last_occurance[cur_substr] = move_num
-
-            for move_num in range(len(position) - p2_len):
+            for move_num in range(len(position) - p2_len + 1):
                 cur_substr = position[move_num : move_num+p2_len]
 
                 if cur_substr in p2_reps:
-                    if p2_reps[cur_substr] >= p2_freq:
-                        p2_win_move = move_num + p2_len
-                        break # no need to calculate future moves
-                    if p2_last_occurance + p2_len <= move_num: # ensure overlapping patterns are not counted
+                    if move_num >= p2_last_occurance[cur_substr] + p2_len: # ensure overlapping patterns are not counted
                         p2_reps[cur_substr] += 1
+                        p2_last_occurance[cur_substr] = move_num
+
+                        if p2_reps[cur_substr] >= p2_freq:
+                            p2_win_move = move_num + p2_len
+                            break # no need to calculate future moves
                 else:
                     p2_reps[cur_substr] = 1
-
-                p2_last_occurance[cur_substr] = move_num
+                    p2_last_occurance[cur_substr] = move_num
 
             if p1_win_move is None:
                 if p2_win_move is None:
