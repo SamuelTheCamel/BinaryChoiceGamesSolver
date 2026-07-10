@@ -218,12 +218,15 @@ class Game():
         else:
             opt_game = start_pos
         
-        return {
-            "result" : result,
-            "opt_move" : opt_move,
-            "num_moves" : num_moves,
-            "opt_game" : opt_game
-        }
+        ret_dict = dict()
+        ret_dict["result"] = result
+        if opt_move is not None:
+            ret_dict["opt_move"] = opt_move
+        if num_moves is not None:
+            ret_dict["num_moves"] = num_moves
+        ret_dict["opt_game"] = opt_game
+
+        return ret_dict
     
 
 class StatusFunc():
