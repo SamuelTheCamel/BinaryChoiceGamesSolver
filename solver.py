@@ -66,149 +66,92 @@ class Game():
             }
         
         turn = len(start_pos) % 2 # 0 for player 1, 1 for player 2
+
+        if turn == 0:
+            WIN = GameStatus.P1WIN
+            LOSS = GameStatus.P2WIN
+        else:
+            WIN = GameStatus.P2WIN
+            LOSS = GameStatus.P1WIN
+        DRAW = GameStatus.DRAW
+        UNKNOWN = GameStatus.NOT_END
         
         # recursively search next moves
-        ret_X = self.search(start_pos + "X", max_depth - 1)
+        ret_x = self.search(start_pos + "X", max_depth - 1)
 
         # OPTIMIZATION: if winning series of moves has been found for X, only search up to that many moves for O
-        if turn+1 == ret_X["result"]: # NOTE: this code must be changed if the GameStatus enum is changed
-            O_depth = ret_X["num_moves"]
+        if ret_x["result"] == WIN:
+            o_depth = ret_x["num_moves"]
         else:
-            O_depth = max_depth - 1
+            o_depth = max_depth - 1
         
-        ret_O = self.search(start_pos + "O", O_depth)
+        ret_o = self.search(start_pos + "O", o_depth)
 
-        result:int = GameStatus.NOT_END
+        result:int = UNKNOWN
         opt_move:str|None = None
         num_moves:int|None = None
 
-        # TODO: reduce redundant code, perhaps with helper functions?
-        if turn == 0: 
-            # player 1 to move
+        if ret_x["result"] == WIN:
+            # can win by choosing X
+            result = WIN
 
-            if ret_X["result"] == GameStatus.P1WIN:
-                # P1 can win by choosing X
-                result = GameStatus.P1WIN
-
-                if ret_O["result"] == GameStatus.P1WIN and ret_O["num_moves"] < ret_X["num_moves"]:
-                    # O will win faster
-                    opt_move = "O"
-                    num_moves = ret_O["num_moves"] + 1
-                else:
-                    # O will not win faster
-                    opt_move = "X"
-                    num_moves = ret_X["num_moves"] + 1
-            
-            elif ret_O["result"] == GameStatus.P1WIN:
-                # P1 can win by choosing O
-                result = GameStatus.P1WIN
+            if ret_o["result"] == WIN and ret_o["num_moves"] < ret_x["num_moves"]:
+                # O will win faster
                 opt_move = "O"
-                num_moves = ret_O["num_moves"] + 1
-
-            # P1 cannot win
-            elif ret_X["result"] == GameStatus.DRAW:
-                # P1 can draw by choosing X
-                result = GameStatus.DRAW
-                
-                if ret_O["result"] == GameStatus.DRAW and ret_O["num_moves"] < ret_X["num_moves"]:
-                    # O will draw faster
-                    opt_move = "O"
-                    num_moves = ret_O["num_moves"] + 1
-                else:
-                    # O will not draw faster
-                    opt_move = "X"
-                    num_moves = ret_X["num_moves"] + 1
-
-            elif ret_O["result"] == GameStatus.DRAW:
-                # P1 can draw by choosing O
-                result = GameStatus.DRAW
-                opt_move = "O"
-                num_moves = ret_O["num_moves"] + 1
-
-            # P1 cannot win or draw
-            elif ret_X["result"] == GameStatus.P2WIN:
-                
-                if ret_O["result"] == GameStatus.P2WIN:
-                    # P1 will lose
-                    result = GameStatus.P2WIN
-                    if ret_O["num_moves"] < ret_X["num_moves"]:
-                        opt_move = "X"
-                        num_moves = ret_X["num_moves"] + 1
-                    else:
-                        opt_move = "O"
-                        num_moves = ret_O["num_moves"] + 1
-                else:
-                    # O leads to an uncertain result
-                    result = GameStatus.NOT_END
-                    opt_move = "O"
-            
+                num_moves = ret_o["num_moves"] + 1
             else:
-                # X leads to an uncertain result
-                result = GameStatus.NOT_END
+                # O will not win faster
                 opt_move = "X"
+                num_moves = ret_x["num_moves"] + 1
         
-        else: # player 2 to move
+        elif ret_o["result"] == WIN:
+            # can win by choosing O
+            result = WIN
+            opt_move = "O"
+            num_moves = ret_o["num_moves"] + 1
 
-            if ret_X["result"] == GameStatus.P2WIN:
-                # P2 can win by choosing X
-                result = GameStatus.P2WIN
-
-                if ret_O["result"] == GameStatus.P2WIN and ret_O["num_moves"] < ret_X["num_moves"]:
-                    # O will win faster
-                    opt_move = "O"
-                    num_moves = ret_O["num_moves"] + 1
-                else:
-                    # O will not win faster
-                    opt_move = "X"
-                    num_moves = ret_X["num_moves"] + 1
+        # cannot win
+        elif ret_x["result"] == DRAW:
+            # can draw by choosing X
+            result = DRAW
             
-            elif ret_O["result"] == GameStatus.P2WIN:
-                # P2 can win by choosing O
-                result = GameStatus.P2WIN
+            if ret_o["result"] == DRAW and ret_o["num_moves"] < ret_x["num_moves"]:
+                # O will draw faster
                 opt_move = "O"
-                num_moves = ret_O["num_moves"] + 1
-
-            # P2 cannot win
-            elif ret_X["result"] == GameStatus.DRAW:
-                # P2 can draw by choosing X
-                result = GameStatus.DRAW
-                
-                if ret_O["result"] == GameStatus.DRAW and ret_O["num_moves"] < ret_X["num_moves"]:
-                    # O will draw faster
-                    opt_move = "O"
-                    num_moves = ret_O["num_moves"] + 1
-                else:
-                    # O will not draw faster
-                    opt_move = "X"
-                    num_moves = ret_X["num_moves"] + 1
-
-            elif ret_O["result"] == GameStatus.DRAW:
-                # P2 can draw by choosing O
-                result = GameStatus.DRAW
-                opt_move = "O"
-                num_moves = ret_O["num_moves"] + 1
-
-            # P2 cannot win or draw
-            elif ret_X["result"] == GameStatus.P1WIN:
-                
-                if ret_O["result"] == GameStatus.P1WIN:
-                    # P2 will lose
-                    result = GameStatus.P1WIN
-                    if ret_O["num_moves"] < ret_X["num_moves"]:
-                        opt_move = "X"
-                        num_moves = ret_X["num_moves"] + 1
-                    else:
-                        opt_move = "O"
-                        num_moves = ret_O["num_moves"] + 1
-                else:
-                    # O leads to an uncertain result
-                    result = GameStatus.NOT_END
-                    opt_move = "O"
-            
+                num_moves = ret_o["num_moves"] + 1
             else:
-                # X leads to an uncertain result
-                result = GameStatus.NOT_END
+                # O will not draw faster
                 opt_move = "X"
+                num_moves = ret_x["num_moves"] + 1
+
+        elif ret_o["result"] == DRAW:
+            # can draw by choosing O
+            result = DRAW
+            opt_move = "O"
+            num_moves = ret_o["num_moves"] + 1
+
+        # cannot win or draw
+        elif ret_x["result"] == LOSS:
+            
+            if ret_o["result"] == LOSS:
+                # losing is inevitable
+                result = LOSS
+                if ret_o["num_moves"] < ret_x["num_moves"]:
+                    opt_move = "X"
+                    num_moves = ret_x["num_moves"] + 1
+                else:
+                    opt_move = "O"
+                    num_moves = ret_o["num_moves"] + 1
+            else:
+                # O leads to an uncertain result
+                result = UNKNOWN
+                opt_move = "O"
+        
+        else:
+            # X leads to an uncertain result
+            result = UNKNOWN
+            opt_move = "X"
+        
         
         # add position to tablebase
         if start_pos in self.tablebase:
@@ -221,9 +164,9 @@ class Game():
 
         # get best move list
         if opt_move == "X":
-            opt_game = ret_X["opt_game"]
+            opt_game = ret_x["opt_game"]
         elif opt_move == "O":
-            opt_game = ret_O["opt_game"]
+            opt_game = ret_o["opt_game"]
         else:
             opt_game = start_pos
         
