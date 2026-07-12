@@ -65,16 +65,25 @@ class Game():
                 "opt_game" : start_pos
             }
         
+        turn = len(start_pos) % 2 # 0 for player 1, 1 for player 2
+        
         # recursively search next moves
         ret_X = self.search(start_pos + "X", max_depth - 1)
-        ret_O = self.search(start_pos + "O", max_depth - 1)
+
+        # OPTIMIZATION: if winning series of moves has been found for X, only search up to that many moves for O
+        if turn+1 == ret_X["result"]: # NOTE: this code must be changed if the GameStatus enum is changed
+            O_depth = ret_X["num_moves"]
+        else:
+            O_depth = max_depth - 1
+        
+        ret_O = self.search(start_pos + "O", O_depth)
 
         result:int = GameStatus.NOT_END
         opt_move:str|None = None
         num_moves:int|None = None
 
         # TODO: reduce redundant code, perhaps with helper functions?
-        if len(start_pos) % 2 == 0: 
+        if turn == 0: 
             # player 1 to move
 
             if ret_X["result"] == GameStatus.P1WIN:
