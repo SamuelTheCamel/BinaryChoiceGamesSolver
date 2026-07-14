@@ -110,48 +110,67 @@ class Game():
             opt_move = "O"
             num_moves = ret_o["num_moves"] + 1
 
-        # cannot win
-        elif ret_x["result"] == DRAW:
-            # can draw by choosing X
-            result = DRAW
-            
-            if ret_o["result"] == DRAW and ret_o["num_moves"] < ret_x["num_moves"]:
-                # O will draw faster
-                opt_move = "O"
-                num_moves = ret_o["num_moves"] + 1
-            else:
-                # O will not draw faster
-                opt_move = "X"
-                num_moves = ret_x["num_moves"] + 1
-
-        elif ret_o["result"] == DRAW:
-            # can draw by choosing O
-            result = DRAW
-            opt_move = "O"
-            num_moves = ret_o["num_moves"] + 1
-
-        # cannot win or draw
+        # cannot win, avoid a loss
         elif ret_x["result"] == LOSS:
-            
+
             if ret_o["result"] == LOSS:
-                # losing is inevitable
+                # loss is inevitable
                 result = LOSS
                 if ret_o["num_moves"] < ret_x["num_moves"]:
+                    # X will lose slower
                     opt_move = "X"
                     num_moves = ret_x["num_moves"] + 1
                 else:
+                    # O will lose slower
                     opt_move = "O"
                     num_moves = ret_o["num_moves"] + 1
+
             else:
-                # O leads to an uncertain result
+                # O prevents losing
+                result = ret_o["result"]
+                opt_move = "O"
+                if "num_moves" in ret_o:
+                    num_moves = ret_o["num_moves"] + 1
+        
+        elif ret_o["result"] == LOSS:
+            # X prevents losing
+            result = ret_x["result"]
+            opt_move = "X"
+            if "num_moves" in ret_x:
+                num_moves = ret_x["num_moves"] + 1
+
+        # no known way to win or lose, avoid a draw
+        elif ret_x["result"] == DRAW:
+
+            if ret_o["result"] == DRAW:
+                # draw is inevitable
+                result = DRAW
+                if ret_o["num_moves"] < ret_x["num_moves"]:
+                    # X will draw slower
+                    opt_move = "X"
+                    num_moves = ret_x["num_moves"] + 1
+                else:
+                    # O will draw slower
+                    opt_move = "O"
+                    num_moves = ret_o["num_moves"] + 1
+
+            else:
+                # O prevents drawing
                 result = UNKNOWN
                 opt_move = "O"
-        
-        else:
-            # X leads to an uncertain result
+                if "num_moves" in ret_o:
+                    num_moves = ret_o["num_moves"] + 1
+
+        elif ret_o["result"] == DRAW:
+            # X prevents drawing
             result = UNKNOWN
             opt_move = "X"
+            if "num_moves" in ret_x:
+                num_moves = ret_x["num_moves"] + 1
         
+        else:
+            # everything is unknown
+            result = UNKNOWN
         
         # add position to tablebase
         if start_pos in self.tablebase:
