@@ -196,59 +196,58 @@ class StatusFunc():
         p1_freq: number of repeated patterns for Player 1 to win
         p2_len: length of Player 2's patterns
         p2_freq: number of repeated patterns for Player 2 to win
+
+        NOTE: Players should not be able to keep playing after the game is over.
+            If a position is passed to the generated function that includes moves after the
+            game is over, the function will have undefined behavior.
         '''
 
         # unholy nested function
         def ret_func(position:str) -> int:
 
-            p1_reps:dict[str,int] = dict() # format: { pattern : # of occurances }
-            p2_reps:dict[str,int] = dict()
-            p1_last_occurance:dict[str,int] = dict() # format: { pattern : move # of most recent occurance }
-            p2_last_occurance:dict[str,int] = dict()
-            p1_win_move:int|None = None # the move when player 1 wins, or None if they do not win
-            p2_win_move:int|None = None # same for player 2
-
             # count repitions for player 1
-            for move_num in range(len(position) - p1_len + 1):
-                cur_substr = position[move_num : move_num+p1_len]
+            if len(position) >= p1_len:
+                last_pattern = position[-p1_len:]
+                short_pos = position[:-p1_len]
+                move_num = 0
+                p1_reps = 1
 
-                if cur_substr in p1_reps:
-                    if move_num >= p1_last_occurance[cur_substr] + p1_len: # ensure overlapping patterns are not counted
-                        p1_reps[cur_substr] += 1
-                        p1_last_occurance[cur_substr] = move_num
+                while move_num + p1_len <= len(short_pos):
+                    cur_pattern = short_pos[move_num:move_num+p1_len]
+                    if cur_pattern == last_pattern:
+                        p1_reps += 1
+                        move_num += p1_len
+                    else:
+                        move_num += 1
+            else:
+                p1_reps = 0
 
-                        if p1_reps[cur_substr] >= p1_freq:
-                            p1_win_move = move_num + p1_len
-                            break # no need to calculate future moves
+            # count repitions for player 2
+            if len(position) >= p2_len:
+                last_pattern = position[-p2_len:]
+                short_pos = position[:-p2_len]
+                move_num = 0
+                p2_reps = 1
+
+                while move_num + p2_len <= len(short_pos):
+                    cur_pattern = short_pos[move_num:move_num+p2_len]
+                    if cur_pattern == last_pattern:
+                        p2_reps += 1
+                        move_num += p2_len
+                    else:
+                        move_num += 1
+            else:
+                p2_reps = 0
+
+            # determine if either player won
+            if p1_reps >= p1_freq:
+                if p2_reps >= p2_freq:
+                    return GameStatus.DRAW
                 else:
-                    p1_reps[cur_substr] = 1
-                    p1_last_occurance[cur_substr] = move_num
-
-            for move_num in range(len(position) - p2_len + 1):
-                cur_substr = position[move_num : move_num+p2_len]
-
-                if cur_substr in p2_reps:
-                    if move_num >= p2_last_occurance[cur_substr] + p2_len: # ensure overlapping patterns are not counted
-                        p2_reps[cur_substr] += 1
-                        p2_last_occurance[cur_substr] = move_num
-
-                        if p2_reps[cur_substr] >= p2_freq:
-                            p2_win_move = move_num + p2_len
-                            break # no need to calculate future moves
-                else:
-                    p2_reps[cur_substr] = 1
-                    p2_last_occurance[cur_substr] = move_num
-
-            if p1_win_move is None:
-                if p2_win_move is None:
-                    return GameStatus.NOT_END
-                else:
-                    return GameStatus.P2WIN
-            elif p2_win_move is None or p1_win_move < p1_win_move:
-                return GameStatus.P1WIN
-            elif p1_win_move > p1_win_move:
+                    return GameStatus.P1WIN
+            elif p2_reps >= p2_freq:
                 return GameStatus.P2WIN
             else:
-                return GameStatus.DRAW
+                return GameStatus.NOT_END
             
         return ret_func
