@@ -200,6 +200,40 @@ class Game():
         return ret_dict
     
 
+    def tablebase_outcome_stats(self) -> dict[str,int]:
+        '''
+        Returns the amount of positions in the tablebase with each outcome.
+
+        Returns a dict with the following values:
+            p1_win: the number of positions that result in a win for player 1
+            p2_win: the number of positions that result in a win for player 2
+            draw: the number of positions that result in a draw
+            unknown: the number of positions that have an unknown outcome
+        '''
+        p1_win_count = 0
+        p2_win_count = 0
+        draw_count = 0
+        unknown_count = 0
+
+        for pos in self.tablebase:
+            result = self.tablebase[pos][0]
+            if result == GameStatus.P1WIN:
+                p1_win_count += 1
+            elif result == GameStatus.P2WIN:
+                p2_win_count += 1
+            elif result == GameStatus.DRAW:
+                draw_count += 1
+            else:
+                unknown_count += 1
+        
+        return {
+            "p1_win":p1_win_count,
+            "p2_win":p2_win_count,
+            "draw":draw_count,
+            "unknown":unknown_count
+        }
+    
+
 class StatusFunc():
     '''
     Contains functions for creating status functions for determining when a game is a win or draw
