@@ -247,7 +247,6 @@ class Game():
         Updates the given position by checking the next two positions.
         Recursively updates all previous positions as necessary.
         '''
-        print(f"Updating {position}")
 
         if position not in self.tablebase:
             # add dummy entry to tablebase so the following code can work
